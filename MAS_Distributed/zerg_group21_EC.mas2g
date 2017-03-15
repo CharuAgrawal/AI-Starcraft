@@ -1,0 +1,43 @@
+use "StarCraft connector.jar" as environment with
+	map="(2)Destination.scx",
+	own_race="Zerg",
+	starcraft_location="C:\\Starcraft\\Starcraft",
+	debug="true",
+	auto_menu="Single_Player",
+	enemy_race="protoss".
+
+define OverLord as agent {
+	use OverLord.OverLord as main module.
+}
+
+define Hatchery as agent {
+	use Hatchery.HatcheryInit as init module.
+	use Hatchery.Hatchery as main module.
+	use Hatchery.HatcheryEvent as event module.
+}
+
+define overMind as agent {
+	use OverMind.OverMind as main module.	
+}
+
+define Drone as agent{
+	use Drone.DroneInit as init module.
+	use Drone.Drone as main module.
+	use Drone.DroneEvent as event module.
+}
+
+define Zergling as agent{
+	use Zergling.ZerglingInit as init module.
+	use Zergling.Zergling as main module.
+	use Zergling.ZerglingEvent as event module.
+}
+
+
+
+launchpolicy{
+	when type = manager launch overMind. 
+	when type = zergOverlord launch OverLord.
+	when type = zergHatchery launch Hatchery.
+	when type = zergDrone launch Drone.
+	when type = zergZergling launch Zergling.
+}

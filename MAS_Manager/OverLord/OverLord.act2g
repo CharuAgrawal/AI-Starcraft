@@ -1,0 +1,5 @@
+use OverLord as knowledge.
+
+define wait(N) with
+	pre{ true }
+	post{ true }

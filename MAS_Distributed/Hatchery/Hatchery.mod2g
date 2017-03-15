@@ -1,0 +1,15 @@
+use Hatchery as knowledge.
+use Hatchery as actionspec.
+
+module Hatchery {
+	if a-goal(unitAmount("Zerg Lair", Amount)), bel(friendly("Zerg Spawning Pool", _ , _, _), supply(CS, TS), (TS - CS) >1 , minerals(X) , cost("Zerg Lair", M,G), X> M , gas(V), V > G) then upgrade("Zerg Lair").
+	
+	% If goal to make a drone and have enough minerals, start training a drone
+	if a-goal(unitAmount("Zerg Drone", Amount)),bel( minerals(X), X >= 50, supply(CS, TS), (TS - CS) > 1) then train("Zerg Drone").
+	
+	% If goal to make an overlord and have enough minerals, start training an overlord
+	if a-goal(unitAmount("Zerg Overlord", Amount)), bel(not(isMorphing("Zerg Overlord", _)), minerals(X), X >= 100, Amount<3) then train("Zerg Overlord").
+	
+	% If goal to make a zergling and have enough minerals, start training a zergling.
+	if a-goal(unitAmount("Zerg Zergling", Amount)),bel(minerals(X), X >= 50, supply(CS, TS), (TS - CS) >1) then train("Zerg Zergling").	
+}

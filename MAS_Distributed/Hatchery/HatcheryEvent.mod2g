@@ -1,0 +1,39 @@
+use Hatchery as knowledge.
+use "../GenericMods/GenericPercepts" as module.
+
+module HatcheryEvent {
+	
+	%%%%%%%%%%%%%%% --------------------------------------- Percepts ---------------------------------------- %%%%%%%%%%%%%%%
+	% If a friendly drone dies, let the OverMind know
+%	forall bel(friendly("Zerg Drone",Id,_,_)) , not(percept(unit(true, "Zerg Drone",Id,_,_,_))) do (overMind).send:(death(Id)).
+	forall bel(friendly("Zerg Drone",Id,_,_)) , not(percept(unit(true, "Zerg Drone",Id,_,_,_))) do allother.send:(death(Id)).
+	
+	% The generic percepts most units use
+	if true then GenericPercepts.
+	
+	% The handling of the queueSize percept
+	if percept(queueSize(N)), bel(queueSize(No), No \= N) then delete(queueSize(No)) + insert(queueSize(N)).
+		
+	%%%%%%%%%%%%%%% --------------------------------------- GOALS ------------------------------------------- %%%%%%%%%%%%%%%
+	if bel(not(isMorphing("Zerg Overlord", _)), unitAmount("Zerg Overlord",Amount), Amount == 1) then adopt(unitAmount("Zerg Overlord", 2)).
+	
+	% Construct Drones whenever there are not enough (enough is a threshold to choose.)
+	if bel(unitAmount("Zerg Drone", D), D < 4, NewD is D+1), not(goal(unitAmount("Zerg Drone", Y))) then adopt(unitAmount("Zerg Drone", NewD)).
+	
+	% If there is a Spawning Pool start making zerglings
+	if bel(friendly("Zerg Spawning Pool", _, _, _), not(unitAmount("Zerg Zergling", X))) , not(goal(unitAmount("Zerg Zergling", Y))) then adopt(unitAmount("Zerg Zergling",1)).
+	if bel(friendly("Zerg Spawning Pool", _, _, _), unitAmount("Zerg Zergling", X), X <3, NewX is X+1) , not(goal(unitAmount("Zerg Zergling", Y))) then adopt(unitAmount("Zerg Zergling",NewX)).
+	
+	%%%Attempt to 'build' a Lair. Not upgrade.
+	if not(goal(unitAmount("Zerg Lair", 1))), bel( not(friendly("Zerg Lair", _, _, _)), minerals(M), gas(G), M>150, G>100) 
+	then adopt(unitAmount("Zerg Lair", 1)).
+	
+	% If getting low on supply and no overlord is on it's way, adopt goal to make one
+	if bel(not(isMorphing("Zerg Overlord", _)), supply(CS, TS), (TS - CS) < 6, unitAmount("Zerg Overlord",Amount), NewAmount is Amount + 1, NewAmount<3) then adopt(unitAmount("Zerg Overlord", NewAmount)).
+	
+	% Starting from a certain threshold, we build as much zergling as drones.
+	if bel(unitAmount("Zerg Drone", D), D > 3, NewD is D+1, friendly("Zerg Spawning Pool", _, _, _),unitAmount("Zerg Zergling", X), X>D), not(goal(unitAmount("Zerg Drone", Y))) then adopt(unitAmount("Zerg Drone", NewD)).
+	if bel(unitAmount("Zerg Drone", D), unitAmount("Zerg Zergling", X), D > 3, friendly("Zerg Spawning Pool", _, _, _), X < D, NewX is X+1), not(goal(unitAmount("Zerg Zergling", Y))) then adopt(unitAmount("Zerg Zergling", NewX)).
+	if bel(unitAmount("Zerg Drone", D), unitAmount("Zerg Zergling", X), D > 3, friendly("Zerg Spawning Pool", _, _, _), X == D, NewX is X+1), not(goal(unitAmount("Zerg Zergling", Y))) then adopt(unitAmount("Zerg Zergling", NewX)).
+	
+}

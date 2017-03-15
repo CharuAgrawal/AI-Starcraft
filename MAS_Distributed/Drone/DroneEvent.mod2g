@@ -1,0 +1,132 @@
+use Drone as knowledge.
+use "../GenericMods/GenericPercepts" as module.
+
+module DroneEvent {
+	%%%%%%%%%%%%%%% --------------------------------------- Messaging --------------------------------------- %%%%%%%%%%%%%%%
+	
+	%% The algorithm proposed to redistribute the drone orders coming from the Overmind to a communication between drones.
+/**	
+	if bel(hatcheryBuilder(H),pool(P), extractor(E) , gatherer(G), HN is H +1, PN is P + 1, EN is E +1, GN is G +1) then delete(hatcheryBuilder(H)) + delete(pool(P)) + delete(extractor(E)) + delete(gatherer(G)) + insert(hatcheryBuilder(HN)) + insert(pool(PN)) + insert(extractor(EN)) + insert(gatherer(GN)).
+	
+	% Received already builder from drone
+	if (_).sent?(buildSpawn), bel(buildSpawn) then delete(buildSpawn).
+	if (_).sent?(buildHatchery), bel(buildHatchery) then delete(buildHatchery).
+	if (_).sent?(buildExtractor),bel(buildExtractor) then delete(buildExtractor).
+	if (_).sent?(vespeneGatherer),bel(vespeneGatherer) then delete(vespeneGatherer).
+	
+	if (_).sent?(buildSpawn), bel(pool(P),threshold(Number)) then delete(pool(P)) + insert(pool(-Number)).
+	if (_).sent?(buildHatchery), bel(hatcheryBuilder(H),threshold(Number)) then delete(hatcheryBuilder(H)) + insert(hatcheryBuilder(-Number)).
+	if (_).sent?(buildExtractor),bel(extractor(E),threshold(Number)) then delete(extractor(E)) + insert(extractor(-Number)).
+	if (_).sent?(vespeneGatherer),bel(gatherer(G),threshold(Number)) then delete(gatherer(G)) + insert(gatherer(-Number)).
+	
+	if bel(threshold(Number),hatcheryBuilder(H), H > 13 , not(buildSpawn) , not(buildHatchery), not(buildExtractor),not(vespeneGatherer)) then delete(hatcheryBuilder(H)) + insert(hatcheryBuilder(-Number))+insert(buildHatchery).
+	if bel(threshold(Number), pool(H), H > 11 , not(buildSpawn) , not(buildHatchery), not(buildExtractor),not(vespeneGatherer)) then delete(pool(H)) + insert(pool(-Number))+insert(buildSpawn).
+	if bel(threshold(Number), extractor(H), H > 9 , not(buildSpawn) , not(buildHatchery), not(buildExtractor),not(vespeneGatherer)) then delete(extractor(H)) + insert(extractor(-Number))+insert(buildExtractor).
+	if bel(threshold(Number), gatherer(H), H > 15 , not(buildSpawn) , not(buildHatchery), not(buildExtractor),not(vespeneGatherer)) then delete(gatherer(H)) + insert(gatherer(-Number))+insert(vespeneGatherer).
+	
+	if bel(threshold(Number), hatcheryBuilder(H), H > 13 ,( (buildSpawn) ;(buildHatchery);(buildExtractor);(vespeneGatherer))) then delete(hatcheryBuilder(H)) + insert(hatcheryBuilder(-Number)).
+	if bel(threshold(Number), pool(H), H > 11 , ( (buildSpawn) ;(buildHatchery);(buildExtractor);(vespeneGatherer))) then delete(pool(H)) + insert(pool(-Number)).
+	if bel(threshold(Number), extractor(H), H > 9 , ( (buildSpawn) ;(buildHatchery);(buildExtractor);(vespeneGatherer))) then delete(extractor(H)) + insert(extractor(-Number)).
+	if bel(threshold(Number), gatherer(H), H > 15 , ( (buildSpawn) ;(buildHatchery);(buildExtractor);(vespeneGatherer))) then delete(gatherer(H)) + insert(gatherer(-Number)).
+					
+	if bel( drone(Name,Id) , hatcheryBuilder(Number),Number < 14 ) then (Name).send?(hatchery).
+	if bel( drone(Name,Id) , pool(Number) , Number < 12 ) then (Name).send?(spawn).
+	if bel( drone(Name,Id) , extractor(Number) , Number < 10) then (Name).send?(extractor).
+	if bel( drone(Name,Id) , gatherer(Number), Number <16 ) then (Name).send?(gatherer).
+ 
+	
+	if (Name).sent?(spawn), bel(buildSpawn) then (Name).send?(buildSpawn).
+	if (Name).sent?(hatchery), bel(buildHatchery) then (Name).send?(buildHatchery).
+	if (Name).sent?(extractor), bel(buildExtractor) then (Name).send?(buildExtractor).
+	if (Name).sent?(gatherer), bel(vespeneGatherer) then (Name).send?(vespeneGatherer).
+*/	
+	
+	
+	
+	% If drone info received, insert it in knowledge base
+	% If a drone has died, delete him from knowledge base
+	forall (_).sent:(death(Id)), bel(drone(Name, Id)) do delete(drone(Name, Id)).	
+	forall (Name).sent:(drone(Id)) , bel(self(MyId,_), not(drone(Name,Id))) do insert(drone(Name, Id)) + (Name).send:(drone(MyId)).		
+	
+	% If don't know hatchery position yet, ask a drone
+	if not(bel(hatcheryPosition(_, _))),bel(drone(Name,Id)) then (Name).send:(hatcheryPosition).
+	
+	% If hatchery position is told, insert it in knowledge base
+	if (_).sent:(hatcheryPosition(X, Y)),not(bel(hatcheryPosition(X,Y))) then insert(hatcheryPosition(X, Y)).
+	forall (Name).sent:(hatcheryPosition),bel(hatcheryPosition(X,Y)) do (Name).send:(hatcheryPosition(X,Y)).
+	
+	
+	% Received builder task from the Overmind
+	if (Name).sent:(builder) then insert(builder).
+	if (_).sent!(buildSpawn) then insert(buildSpawn).
+	if (_).sent!(buildEC) then insert(buildEC).
+	if (_).sent!(buildHatchery) then insert(buildHatchery).
+	if (_).sent!(buildExtractor) then insert(buildExtractor).
+	if (_).sent!(gatherVespene) then insert(vespeneGatherer).
+	
+	
+	
+	%%%%%%%%%%%%%%% --------------------------------------- Percepts --------------------------------------- %%%%%%%%%%%%%%%
+	
+	% The generic percepts most units use
+	if true then GenericPercepts.	
+	
+	% The handling of the conditions corresponding to this agent
+	if percept(status(_,_,_,NewCond,_,_)), bel(condition(OldCond), NewCond \= OldCond) then delete(condition(OldCond)) + insert(condition(NewCond)).
+	
+	% The handling of mineralfields	
+	forall percept(mineralField(Id,Amount,_,X,Y)), not(bel(mineralField(Id,Amount,X,Y))) do insert(mineralField(Id,Amount,X,Y)).
+	forall bel(mineralField(Id,Amount,X,Y)), not(percept(mineralField(Id,Amount,_,X,Y))) do delete(mineralField(Id,Amount,X,Y)).
+	
+	% The handling of vespenegeyser
+	forall percept(vespeneGeyser(Id,Amount,_,X,Y)), not(bel(vespeneGeyser(Id,Amount,X,Y))) do insert(vespeneGeyser(Id,Amount,X,Y)).
+	forall bel(vespeneGeyser(Id,Amount,X,Y)), not(percept(vespeneGeyser(Id,Amount,_,X,Y))) do delete(vespeneGeyser(Id,Amount,X,Y)).
+	
+	% The handling of the constructionSites
+	forall percept(constructionSite(X,Y)), not(bel(constructionSite(X,Y))) do insert(constructionSite(X,Y)).
+	forall bel(constructionSite(X,Y)),not(percept(constructionSite(X,Y))) do delete(constructionSite(X,Y)).
+	
+	% The handling of the workerActivity
+	forall percept(workerActivity(ID,ACT)), bel(not(workerActivity(ID,ACT))) do insert(workerActivity(ID,ACT)).
+	forall bel(workerActivity(ID,ACT)),not(percept(workerActivity(ID,ACT))) do delete(workerActivity(ID,ACT)).
+		
+	%%%%%%%%%%%%%%% --------------------------------------- GOALS --------------------------------------- %%%%%%%%%%%%%%%
+	
+	%% Actions for the specific drones
+	
+	% If there is no spawningpool yet, create one
+	if not(goal(unitAmount("Zerg Spawning Pool", 1))),bel(not(friendly("Zerg Spawning Pool", _, _, _)), buildSpawn)
+	then adopt(unitAmount("Zerg Spawning Pool", 1)).
+	
+	%%Creating a Evolution Chamber
+	if not(goal(unitAmount("Zerg Evolution Chamber", 1))), bel(not(friendly("Zerg Evolution Chamber", _, _, _)), buildEC) 
+	then adopt(unitAmount("Zerg Evolution Chamber", 1)).
+	
+	
+	% Build Hatchery when enough resources
+	if bel(buildHatchery,minerals(OM),OM >300,unitAmount("Zerg Drone",D), unitAmount("Zerg Zergling",Z), unitAmount("Zerg Hatchery", H), NewH is H+1, M is mod(D+Z,4),M==0,  D>3,Z>3), not(goal(unitAmount("Zerg Hatchery", _))) then adopt(unitAmount("Zerg Hatchery", NewH)).
+	
+	if not(goal(unitAmount("Zerg Extractor", N))),bel(not(friendly("Zerg Extractor", _, _, _)), buildExtractor)
+	then adopt(unitAmount("Zerg Extractor", 1)).
+	
+	
+	
+	if bel(vespeneGatherer, friendly("Zerg Extractor",_,_,_), self(Id,_), minerals(OM), OM > 300 , gas(G) , H is OM / 2 ,  G < H ) then adopt(workerActivity(Id, gatheringGas)).
+	if bel(vespeneGatherer, gas(G), G > 100, minerals(OM), H is OM / 2 ,  G > H, self(Id,_)) then drop(workerActivity(Id, gatheringGas)).	
+	if bel(vespeneGatherer , self(Id,_)),not(goal(workerActivity(Id, gatheringMinerals))) then adopt(workerActivity(Id, gatherMinerals)).
+	
+	
+	%% Actions for all drones except the vespene gatherer
+	
+	% If the worker is building something but there are no more resources to build, he starts harvesting minerals.
+	% We comment this belief-goal specification as it is not necessary: when there are enough resources, they are automatically attributed to the construction.
+%	if bel(not(vespeneGatherer),minerals(OM), OM == 0, self(Id,_), condition(C), member(consructing, C)) then adopt(workerActivity(Id, gatheringMinerals)).
+	
+	%If the resources are low, start harvest.
+	if not(goal(workerActivity(Id, gatheringMinerals))),bel(not(vespeneGatherer), self(Id, _),minerals(OM),cost("Zerg Hatchery", H, _), OM <H) then adopt(workerActivity(Id, gatheringMinerals)).
+		
+	% If the worker is not busy yet, start gathering minerals  % minerals(M),M>300, Div is div(M,2),G<Div
+	if bel(not(busy), self(Id, _),not(vespeneGatherer)) then adopt(workerActivity(Id, gatheringMinerals)).
+	
+	
+}

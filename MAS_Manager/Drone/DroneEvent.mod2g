@@ -1,0 +1,81 @@
+use Drone as knowledge.
+use "../GenericMods/GenericPercepts" as module.
+
+module DroneEvent {
+	%%%%%%%%%%%%%%% --------------------------------------- Messaging --------------------------------------- %%%%%%%%%%%%%%%
+	
+	% Received builder task from the Overmind
+	if (Name).sent:(builder) then insert(builder).
+	if (_).sent!(buildSpawn) then insert(buildSpawn).
+	if (_).sent!(buildEC) then insert(buildEC).
+	if (_).sent!(buildHatchery) then insert(buildHatchery).
+	if (_).sent!(buildExtractor) then insert(buildExtractor).
+	if (_).sent!(gatherVespene) then insert(vespeneGatherer).
+	
+	% If don't know hatchery position yet, ask the overMind
+	if not(bel(hatcheryPosition(_, _))) then (overMind).send?(hatcheryPosition).
+	
+	% If hatchery position is told, insert it in knowledge base
+	if (_).sent:(hatcheryPosition(X, Y)) then insert(hatcheryPosition(X, Y)).
+	
+	%%%%%%%%%%%%%%% --------------------------------------- Percepts --------------------------------------- %%%%%%%%%%%%%%%
+	
+	% The generic percepts most units use
+	if true then GenericPercepts.	
+	
+	% The handling of the conditions corresponding to this agent
+	if percept(status(_,_,_,NewCond,_,_)), bel(condition(OldCond), NewCond \= OldCond) then delete(condition(OldCond)) + insert(condition(NewCond)).
+	
+	% The handling of mineralfields	
+	forall percept(mineralField(Id,Amount,_,X,Y)), not(bel(mineralField(Id,Amount,X,Y))) do insert(mineralField(Id,Amount,X,Y)).
+	forall bel(mineralField(Id,Amount,X,Y)), not(percept(mineralField(Id,Amount,_,X,Y))) do delete(mineralField(Id,Amount,X,Y)).
+	
+	% The handling of vespenegeyser
+	forall percept(vespeneGeyser(Id,Amount,_,X,Y)), not(bel(vespeneGeyser(Id,Amount,X,Y))) do insert(vespeneGeyser(Id,Amount,X,Y)).
+	forall bel(vespeneGeyser(Id,Amount,X,Y)), not(percept(vespeneGeyser(Id,Amount,_,X,Y))) do delete(vespeneGeyser(Id,Amount,X,Y)).
+	
+	% The handling of the constructionSites
+	forall percept(constructionSite(X,Y)), not(bel(constructionSite(X,Y))) do insert(constructionSite(X,Y)).
+	forall bel(constructionSite(X,Y)),not(percept(constructionSite(X,Y))) do delete(constructionSite(X,Y)).
+	
+	% The handling of the workerActivity
+	forall percept(workerActivity(ID,ACT)), bel(not(workerActivity(ID,ACT))) do insert(workerActivity(ID,ACT)).
+	forall bel(workerActivity(ID,ACT)),not(percept(workerActivity(ID,ACT))) do delete(workerActivity(ID,ACT)).
+		
+	%%%%%%%%%%%%%%% --------------------------------------- GOALS --------------------------------------- %%%%%%%%%%%%%%%
+	
+	%% Actions for the specific drones
+	
+	% If there is no spawningpool yet, create one
+	if not(goal(unitAmount("Zerg Spawning Pool", 1))),bel(not(friendly("Zerg Spawning Pool", _, _, _)), buildSpawn)
+	then adopt(unitAmount("Zerg Spawning Pool", 1)).
+	
+	% If there is no spawningpool yet, create one
+	if not(goal(unitAmount("Zerg Evolution Chamber", 1))),bel(not(friendly("Zerg Evolution Chamber", _, _, _)), buildEC)
+	then adopt(unitAmount("Zerg Evolution Chamber", 1)).
+	
+	% Build Hatchery when enough resources % , M is mod(D+Z,3),M==0,  D>3,Z>3,
+	if bel(buildHatchery,minerals(OM),OM >300,unitAmount("Zerg Drone",D), unitAmount("Zerg Zergling",Z), unitAmount("Zerg Hatchery", H), NewH is H+1, M is mod(D+Z,4),M==0,  D>3,Z>3), not(goal(unitAmount("Zerg Hatchery", _))) then adopt(unitAmount("Zerg Hatchery", NewH)).
+	
+	if not(goal(unitAmount("Zerg Extractor", N))),bel(not(friendly("Zerg Extractor", _, _, _)), buildExtractor)
+	then adopt(unitAmount("Zerg Extractor", 1)).
+	
+	if bel(vespeneGatherer, friendly("Zerg Extractor",_,_,_), self(Id,_), minerals(OM), OM > 300 , gas(G) , H is OM / 2 ,  G < H ) then adopt(workerActivity(Id, gatheringGas)).
+	if bel(vespeneGatherer, gas(G), G > 100, minerals(OM), H is OM / 2 ,  G > H, self(Id,_)) then drop(workerActivity(Id, gatheringGas)).	
+	if bel(vespeneGatherer , self(Id,_)),not(goal(workerActivity(Id, gatheringMinerals))) then adopt(workerActivity(Id, gatherMinerals)).
+	
+	
+	%% Actions for all drones except the vespene gatherer
+	
+	% If the worker is building something but there are no more resources to build, he starts harvesting minerals.
+	% We comment this belief-goal specification as it is not necessary: when there are enough resources, they are automatically attributed to the construction.
+%	if bel(not(vespeneGatherer),minerals(OM), OM == 0, self(Id,_), condition(C), member(consructing, C)) then adopt(workerActivity(Id, gatheringMinerals)).
+	
+	%If the resources are low, start harvest.
+	if not(goal(workerActivity(Id, gatheringMinerals))),bel(not(vespeneGatherer), self(Id, _),minerals(OM),cost("Zerg Hatchery", H, _), OM <H) then adopt(workerActivity(Id, gatheringMinerals)).
+		
+	% If the worker is not busy yet, start gathering minerals  % minerals(M),M>300, Div is div(M,2),G<Div
+	if bel(not(busy), self(Id, _),not(vespeneGatherer)) then adopt(workerActivity(Id, gatheringMinerals)).
+	
+	
+}

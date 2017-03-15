@@ -1,0 +1,17 @@
+use Hatchery as knowledge.
+
+module HatcheryInit {
+	% Insert info about me
+	if percept(self(Id,Type,_,_,_)) then insert(self(Id, Type)).
+	
+	% Init queueSize percept
+	if percept(queueSize(Amount)) then insert(queueSize(Amount)).
+	
+	% Init resources percepts
+	if percept(resources(M, G, C, T)) then insert(minerals(M), gas(G), supply(C, T)).
+	
+	% send location to the Overmind
+%	if percept(status(_,_,_,_,X, Y)) then (overMind).send(hatcheryPosition(X, Y)).
+	if percept(status(_,_,_,_,X, Y)) then allother.send:(hatcheryPosition(X, Y)).
+
+}

@@ -1,0 +1,5 @@
+use OverMind as knowledge.
+
+define wait(N) with
+	pre{ true }
+	post{ true }

@@ -1,0 +1,64 @@
+use OverMind as knowledge.
+use OverMind as actionspec.
+%use "../GenericMods/GenericPercepts" as module.
+order=linearall.
+
+module OverMindEvent {
+	% if true then insert(waiting). % If the complete distribution is tested, the following code is commented and only this line is kept.
+	
+	%If enough zerglings gathered, tell zerglings to attack
+	forall bel(allReady) do allother.send(attack).
+	
+	
+	%If zergling is ready, insert it in knowledge base
+    forall (_).sent:(ready(Id)) do insert(ready(Id)).	
+	
+	
+	% If a drone has died, delete him from knowledge base
+	forall (_).sent:(death(Id)), bel(drone(Name, Id)) do delete(drone(Name, Id)).
+	
+	% If drone info received, insert it in knowledge base
+	forall (Name).sent:(drone(Id)) do insert(drone(Name, Id)).	
+	
+	% When hatcheryPosition received, insert it to knowledge base
+%	if (_).sent:(hatcheryPosition(X, Y)) then insert(hatcheryPosition(X, Y)).
+	
+	% If hatchery position is requested, send the nexus location
+%	forall (Name).sent?(hatcheryPosition), bel(hatcheryPosition(X, Y)) do (Name).send:(hatcheryPosition(X, Y)).
+	
+	if bel(countingDrone(X),not(droneNb(_))) then insert(droneNb(X)).
+	if bel(countingDrone(X), droneNb(Y),X\=Y) then delete(droneNb(Y))+ insert((droneNb(X))). 
+	
+	
+	% If believe spawn builder, but the corresponding drone does not exist anymore, delete done from knowledge base
+	if bel(buildSpawn(Name, Id), not(drone(Name, Id))) then delete(buildSpawn(Name, Id)).
+	% If there is no spawning pool and no spawning pool builder but enough resources, ask one drone to build a spawning pool.
+	if bel(drone(Name,Id), not(buildSpawn(_,_)) , ((buildExtractor(Name1,Id1),Name1\=Name,Id1\=Id);not(buildExtractor(_,_))) , ((buildHatchery(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildHatchery(_,_)))) , ((vespeneGatherer(Name3,Id3), Name\=Name3,Id3\=Id);(not(vespeneGatherer(_,_))))) then insert(buildSpawn(Name,Id))+ (Name).send!(buildSpawn).
+
+    % If there is no spawning pool and no spawning pool builder but enough resources, ask one drone to build a spawning pool.
+	if bel(drone(Name,Id), not(buildEC(_,_)) , ((buildSpawn(Name7,Id7), Name\=Name7,Id7\=Id);(not(buildSpawn(_,_)))) , ((buildExtractor(Name1,Id1),Name1\=Name,Id1\=Id);not(buildExtractor(_,_))) , ((buildHatchery(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildHatchery(_,_)))) , ((vespeneGatherer(Name3,Id3), Name\=Name3,Id3\=Id);(not(vespeneGatherer(_,_))))) then insert(buildEC(Name,Id))+ (Name).send!(buildEC).
+
+
+
+    %if bel(drone(Name,Id), not(buildEC(_,_)) , ((buildExtractor(Name1,Id1),Name1\=Name,Id1\=Id);not(buildExtractor(_,_))) , ((buildHatchery(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildHatchery(_,_)))) , ((vespeneGatherer(Name3,Id3), Name\=Name3,Id3\=Id);(not(vespeneGatherer(_,_))))) then insert(buildEC(Name,Id))+ (Name).send!(buildEC).
+    
+	% If believe hatchery builder, but the corresponding drone does not exist anymore, delete done from knowledge base
+	if bel(buildHatchery(Name, Id), not(drone(Name, Id))) then delete(buildHatchery(Name, Id)).
+	% If there is enough resources, ask one drone to build a hatchery.
+	if bel(drone(Name,Id), not(buildHatchery(_,_)) , 
+	((buildExtractor(Name1,Id1),Name1\=Name,Id1\=Id);not(buildExtractor(_,_))) , 
+	((buildSpawn(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildSpawn(_,_)))) , 
+	((buildEC(Name5,Id5), Name\=Name5,Id5\=Id);(not(buildEC(_,_)))) ,
+	((vespeneGatherer(Name3,Id3), Name\=Name3,Id3\=Id);(not(vespeneGatherer(_,_))))) 
+	then insert(buildHatchery(Name,Id))+ (Name).send!(buildHatchery).
+	
+	% Extractor
+	if bel(buildExtractor(Name, Id), not(drone(Name, Id))) then delete(buildExtractor(Name, Id)).
+	% If there is no spawning pool and no spawning pool builder but enough resources, ask one drone to build a spawning pool.
+	if bel(drone(Name,Id), not(buildExtractor(_,_)), 	((buildEC(Name5,Id5), Name\=Name5,Id5\=Id);(not(buildEC(_,_)))) ,((buildHatchery(Name1,Id1),Name1\=Name,Id1\=Id);not(buildHatchery(_,_))) , ((buildSpawn(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildSpawn(_,_)))) , ((vespeneGatherer(Name3,Id3), Name\=Name3,Id3\=Id);(not(vespeneGatherer(_,_))))) then insert(buildExtractor(Name,Id))+ (Name).send!(buildExtractor).
+	
+	% Vespene gathering by one drone.
+	if bel(vespeneGatherer(Name, Id), not(drone(Name, Id))) then delete(vespeneGatherer(Name, Id)).
+	if bel(drone(Name,Id), not(vespeneGatherer(_,_)), ((buildExtractor(Name3,Id3), Name3\=Name,Id3\=Id);not(buildExtractor(_,_))), ((buildHatchery(Name1,Id1),Name1\=Name,Id1\=Id);not(buildHatchery(_,_))) , ((buildSpawn(Name2,Id2), Name\=Name2,Id2\=Id);(not(buildSpawn(_,_))))) then insert(vespeneGatherer(Name,Id))+ (Name).send!(gatherVespene).
+	
+}

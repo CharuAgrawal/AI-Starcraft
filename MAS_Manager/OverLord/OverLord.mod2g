@@ -1,0 +1,8 @@
+use OverLord as knowledge.
+use OverLord as actionspec.
+order = linearall.
+
+module OverLord {
+	% If goal to make zergling and have enough minerals, start training zerglings
+	if a-goal(unitAmount("Zerg Zergling", 50)), bel(minerals(M), M >= 50) then wait(1).
+}
